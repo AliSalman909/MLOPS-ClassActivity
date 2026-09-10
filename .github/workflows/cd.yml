@@ -58,3 +58,46 @@ jobs:
         run: |
           docker push ghcr.io/${GITHUB_REPOSITORY,,}:${{ steps.version.outputs.version }}
           docker push ghcr.io/${GITHUB_REPOSITORY,,}:latest
+
+  deploy-staging:
+    needs: build
+    runs-on: [self-hosted, Windows, X64, mlops-local]
+    environment:
+      name: staging
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: staging-deployment
+      cancel-in-progress: false
+    env:
+      RELEASE_VERSION: ${{ needs.build.outputs.version }}
+      DOCKER_CONFIG: ${{ runner.temp }}/docker-staging-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Login to GHCR for deployment
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy staging on Docker Desktop
+        # -File avoids quoting problems with the apostrophe in the Windows user path.
+        shell: powershell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File {0}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $image = "ghcr.io/$($env:GITHUB_REPOSITORY.ToLowerInvariant()):$env:RELEASE_VERSION"
+          docker pull $image
+          if ($LASTEXITCODE -ne 0) { throw 'Could not pull the staging image.' }
+
+          $existing = docker ps -a --filter 'name=^/mlops-staging$' --format '{{.Names}}'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list containers.' }
+          if ($existing -contains 'mlops-staging') {
+            docker stop mlops-staging
+            if ($LASTEXITCODE -ne 0) { throw 'Could not stop staging.' }
+            docker rm mlops-staging
+            if ($LASTEXITCODE -ne 0) { throw 'Could not remove the old staging container.' }
+          }
+
+          docker run -d --name mlops-staging --restart unless-stopped -p 127.0.0.1:5001:5000 $image
+          if ($LASTEXITCODE -ne 0) { throw 'Could not start staging.' }

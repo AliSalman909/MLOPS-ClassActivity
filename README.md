@@ -108,3 +108,72 @@ enable an approval gate.
 These settings are stored on GitHub, outside Git history. This README
 documents the setup procedure; verify that both environments appear in
 GitHub before considering the setup complete.
+
+## Local Deployment Host: Adapted Step 16
+
+This exercise uses Docker Desktop on Windows with a repository-level
+self-hosted GitHub Actions runner instead of an Ubuntu server and SSH.
+The user confirmed that the runner shows `Listening for Jobs` and that
+`docker info` reports both client and server information. This verifies
+runner registration and Docker access; an actual deployment job still
+needs to succeed to verify the complete path.
+
+Setup procedure:
+
+1. Keep Docker Desktop running with Linux containers.
+2. Open repository Settings > Actions > Runners > New self-hosted runner,
+   and select Windows and the matching architecture (normally x64).
+3. Use GitHub's generated download and configuration commands in a runner
+   folder outside this repository, such as `%USERPROFILE%\actions-runner`.
+4. Name the runner `mlops-laptop`, add the custom label `mlops-local`,
+   accept the default runner group and work folder, and decline service
+   installation. Run it interactively under the same Windows account
+   that uses Docker Desktop with `.\run.cmd`.
+5. Confirm `Listening for Jobs` locally and `Idle` on the GitHub runner
+   page. Verify Docker access from that Windows account with `docker info`.
+
+Keep the runner terminal and Docker Desktop running for deployments.
+Do not commit the runner installation or registration credentials.
+Use the local runner only for trusted release deployments, not pull request
+jobs; workflow code on it can access the laptop. CI and image builds stay
+on GitHub-hosted Ubuntu runners. Local deployment jobs will use PowerShell.
+
+Later steps will use separate containers and localhost ports for staging
+and simulated production on this laptop. This is a classroom simulation,
+not separate production infrastructure. GitHub environments still provide
+deployment settings and production approval. SSH setup and host/key secrets
+from the Ubuntu approach are replaced by local runner execution.
+
+## Local Access: Adapted Steps 17 and 18
+
+The runner is installed at `C:\Users\Ali's HP\actions-runner` and runs
+interactively under the Windows user account that has Docker access.
+It receives jobs from GitHub and executes Docker locally, so this setup
+does not use SSH keys or `STAGING_HOST`, `STAGING_USER`, and
+`STAGING_SSH_KEY` secrets. These tutorial steps are replaced, not performed
+as Ubuntu/SSH setup. The GitHub `staging` environment remains in use.
+
+## Automatic Staging Deployment: Adapted Step 19
+
+`deploy-staging` waits for the build job and targets runner labels
+`self-hosted`, `Windows`, `X64`, and `mlops-local`. Ensure the registered
+runner has all four labels in Settings > Actions > Runners.
+
+The job authenticates to GHCR with `GITHUB_TOKEN` and `packages: read`,
+using a separate temporary Docker configuration. It downloads the exact
+release-tagged image produced by the build job without rebuilding it.
+After pulling successfully, it replaces only the `mlops-staging` container.
+Concurrent staging deployment jobs are serialized.
+
+Staging is available on the laptop at `http://127.0.0.1:5001/health`.
+Port 5001 on Windows maps to port 5000 inside the container and is bound
+to localhost. Deployment scripts use Windows PowerShell with `-File` to
+avoid the default shell command's quoting issue with `Ali's HP` paths.
+This does not fix the separate startup message from `run.cmd`.
+
+Keep Docker Desktop and the runner terminal open. After committing the
+workflow, a new release tag triggers tests, publishing, and deployment.
+Use an unused version and keep `VERSION` consistent with it. Step 19 has
+been configured locally; its workflow run has not yet been verified.
+An automated health check and production approval/deployment are still
+to be added in subsequent steps.
