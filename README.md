@@ -15,6 +15,7 @@ The summaries below describe the completed steps; commit titles follow the comma
 | Application versioning | Recorded the initial application version, `1.0.0`, in `VERSION`. |
 | Container registry | Documented GHCR as the planned location for release images. |
 | Start the CD workflow | Step 10 defines a tag-triggered workflow that checks out the code, sets up Python 3.12, installs dependencies, and runs the API tests. |
+| Extract the release version | Step 11 adds a build job after the tests, removes the leading `v` from the pushed tag, and exposes the version for later steps and jobs. |
 
 ## Build once, deploy many
 
@@ -33,10 +34,21 @@ The workflow belongs in `.github/workflows/cd.yml`. Pushing a tag matching
 `v*.*.*`, such as `v1.0.0`, triggers it; ordinary branch pushes do not.
 This pattern matches release-style names but does not strictly validate semantic versions.
 
-The test job runs on Ubuntu with Python 3.12 and executes `python -m pytest`.
+The test job runs on Ubuntu with Python 3.12 and executes the API tests with pytest.
 The workflow declares read access to repository contents and package write
 access for the image publishing steps to be added later.
 
-At this stage, the workflow only runs tests. Image building, publishing,
+At step 10, the workflow only runs tests. Image building, publishing,
 staging deployment, and production approval will be added in later steps.
 The first release tag will be pushed after the intended release workflow is ready.
+
+## Release Version: Step 11
+
+The `build` job depends on successful completion of the `test` job.
+For a pushed tag such as `v1.3.0`, `${GITHUB_REF_NAME#v}` extracts `1.3.0`.
+The `Get version` step writes the value to `GITHUB_OUTPUT`; the job exposes
+it as its `version` output so later deployment jobs can use the same version.
+
+This version comes from the Git tag, not the `VERSION` file. Keep the file
+and release tag consistent when releasing. For now, the build job only
+extracts and displays the version; Docker image building is added later.
