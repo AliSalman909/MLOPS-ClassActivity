@@ -18,6 +18,7 @@ The summaries below describe the completed steps; commit titles follow the comma
 | Extract the release version | Step 11 adds a build job after the tests, removes the leading `v` from the pushed tag, and exposes the version for later steps and jobs. |
 | Registry login | Step 12 configures GHCR authentication in the build job using `docker/login-action@v3` and the workflow's automatic `GITHUB_TOKEN`. |
 | Build and publish image | Step 13 adds Docker build and push steps using the extracted release version and a lowercase repository image name. |
+| Convenience latest tag | Step 14 tags the same build with both the release version and `latest`, pushes both tags, and fixes the build step indentation. |
 
 ## Build once, deploy many
 
@@ -77,3 +78,15 @@ tests, image building, and publishing of
 Check GitHub Actions for the run result. Staging and production deployment
 are not configured yet. Use a new release version for future changes
 rather than moving an existing release tag.
+
+## Convenience Tag: Step 14
+
+The workflow builds one image with two tags: the extracted release version
+and `latest`. Both tags are pushed to GHCR. `latest` is a movable label
+updated by each successful push of that tag; it is not a separate build
+or a guarantee of the highest version number.
+
+Use explicit release versions for production and rollback, keeping release
+tags unchanged. Committing this workflow change does not publish images;
+it takes effect on the next new release tag. Do not recreate `v1.0.0`
+if it has already been pushed.

@@ -47,13 +47,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Build Docker image
+      - name: Build Docker image
         run: |
           docker build \
             -t ghcr.io/${GITHUB_REPOSITORY,,}:${{ steps.version.outputs.version }} \
+            -t ghcr.io/${GITHUB_REPOSITORY,,}:latest \
             .
 
-      - name: Push Docker image
+      - name: Push Docker images
         run: |
-          docker push \
-            ghcr.io/${GITHUB_REPOSITORY,,}:${{ steps.version.outputs.version }}
+          docker push ghcr.io/${GITHUB_REPOSITORY,,}:${{ steps.version.outputs.version }}
+          docker push ghcr.io/${GITHUB_REPOSITORY,,}:latest
