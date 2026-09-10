@@ -175,8 +175,8 @@ Keep Docker Desktop and the runner terminal open. After committing the
 workflow, a new release tag triggers tests, publishing, and deployment.
 Use an unused version and keep `VERSION` consistent with it. Step 19 has
 been configured locally; its workflow run has not yet been verified.
-Step 20 adds the automated health check. Production approval and deployment
-are still to be added in subsequent steps.
+Step 20 adds the automated health check. Step 21 configures the production
+job; its approval rule must also be saved in GitHub environment settings.
 
 ## Staging Smoke Test: Adapted Step 20
 
@@ -189,6 +189,29 @@ five-second pauses between failed attempts, allowing time for app startup.
 If all attempts fail, it throws an error and marks `deploy-staging` failed.
 Failure does not automatically stop the container or roll it back.
 
-The future production job must depend on successful staging deployment
+The production job depends on successful staging deployment
 so that this check gates promotion. It does not measure model accuracy.
 The smoke test is configured; a release workflow run must still verify it.
+
+## Production Approval: Adapted Step 21
+
+The `deploy-production` job depends on both `build` and `deploy-staging`
+and references the GitHub `production` environment. It uses the same
+Windows runner and release-version image as staging, without rebuilding.
+Production is simulated with a separate `mlops-production` container at
+`http://127.0.0.1:5002/health`; staging remains on port 5001.
+No `PRODUCTION_HOST`, `PRODUCTION_USER`, or `PRODUCTION_SSH_KEY` is needed.
+
+Before triggering a release, open Settings > Environments > production,
+enable Required reviewers, select an eligible reviewer, and save the rule.
+For a solo classroom exercise, select your own account and leave Prevent
+self-review unchecked so you can approve your own release. Leave staging
+without a required-reviewer gate. Feature availability depends on the
+GitHub plan and repository visibility.
+
+The YAML does not create this approval rule. Without the saved GitHub rule,
+production runs automatically after staging succeeds. With the rule, open
+the workflow run, select Review deployments, select production, and approve
+when ready. Approval settings and actual deployment are not yet verified.
+Production currently checks Docker command success; manually check its
+health endpoint after deployment. No automated production rollback is configured.

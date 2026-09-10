@@ -122,3 +122,45 @@ jobs:
             }
           }
           throw 'Staging failed its health check after 12 attempts.'
+
+  deploy-production:
+    needs: [build, deploy-staging]
+    runs-on: [self-hosted, Windows, X64, mlops-local]
+    environment:
+      name: production
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: production-deployment
+      cancel-in-progress: false
+    env:
+      RELEASE_VERSION: ${{ needs.build.outputs.version }}
+      DOCKER_CONFIG: ${{ runner.temp }}/docker-production-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Login to GHCR for production
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy production on Docker Desktop
+        shell: powershell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File {0}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $image = "ghcr.io/$($env:GITHUB_REPOSITORY.ToLowerInvariant()):$env:RELEASE_VERSION"
+          docker pull $image
+          if ($LASTEXITCODE -ne 0) { throw 'Could not pull the production image.' }
+
+          $existing = docker ps -a --filter 'name=^/mlops-production$' --format '{{.Names}}'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list containers.' }
+          if ($existing -contains 'mlops-production') {
+            docker stop mlops-production
+            if ($LASTEXITCODE -ne 0) { throw 'Could not stop production.' }
+            docker rm mlops-production
+            if ($LASTEXITCODE -ne 0) { throw 'Could not remove the old production container.' }
+          }
+
+          docker run -d --name mlops-production --restart unless-stopped -p 127.0.0.1:5002:5000 $image
+          if ($LASTEXITCODE -ne 0) { throw 'Could not start production.' }
