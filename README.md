@@ -16,6 +16,7 @@ The summaries below describe the completed steps; commit titles follow the comma
 | Container registry | Documented GHCR as the planned location for release images. |
 | Start the CD workflow | Step 10 defines a tag-triggered workflow that checks out the code, sets up Python 3.12, installs dependencies, and runs the API tests. |
 | Extract the release version | Step 11 adds a build job after the tests, removes the leading `v` from the pushed tag, and exposes the version for later steps and jobs. |
+| Registry login | Step 12 configures GHCR authentication in the build job using `docker/login-action@v3` and the workflow's automatic `GITHUB_TOKEN`. |
 
 ## Build once, deploy many
 
@@ -52,3 +53,13 @@ it as its `version` output so later deployment jobs can use the same version.
 This version comes from the Git tag, not the `VERSION` file. Keep the file
 and release tag consistent when releasing. For now, the build job only
 extracts and displays the version; Docker image building is added later.
+
+## GHCR Login: Step 12
+
+Add the login step after `Show version` in the build job. It authenticates
+to `ghcr.io` using `github.actor` as the username and `secrets.GITHUB_TOKEN`
+as the password. GitHub provides this token automatically for the workflow;
+no personal password or manually created token is needed for this step.
+
+The existing `packages: write` permission enables package publishing.
+Login alone does not build or upload an image; those steps come next.
