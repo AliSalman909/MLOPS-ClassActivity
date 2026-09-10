@@ -17,6 +17,9 @@ The summaries below describe the completed steps; commit titles follow the comma
 
 Build one Docker image for each release. Test that image in staging, then deploy the same image to production after approval. Changes require a new version; existing release images should not be overwritten.
 
-## Next steps
+## Container Registry
 
-Add application versioning, automate tests and image publishing with GitHub Actions, then configure staging deployment, production approval, and rollback.
+We will use GitHub Container Registry (GHCR) to store release images.
+GitHub Actions will build and publish these images from our repository.
+
+First planned image: `ghcr.io/alisalman909/mlops-classactivity:1.0.0`
