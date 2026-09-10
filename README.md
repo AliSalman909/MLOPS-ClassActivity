@@ -90,3 +90,21 @@ Use explicit release versions for production and rollback, keeping release
 tags unchanged. Committing this workflow change does not publish images;
 it takes effect on the next new release tag. Do not recreate `v1.0.0`
 if it has already been pushed.
+
+## GitHub Environments: Step 15
+
+Setup is performed in the repository's Settings > Environments page:
+
+1. Create an environment named `staging` without required reviewers.
+2. Create an environment named `production`. The required-reviewer
+   approval gate will be configured in step 21.
+
+Environments group deployment secrets, variables, protection rules, and
+deployment history. They do not create servers or deploy the application.
+Server setup, environment secrets, and workflow deployment jobs are added
+in later steps. Creating an environment named `production` alone does not
+enable an approval gate.
+
+These settings are stored on GitHub, outside Git history. This README
+documents the setup procedure; verify that both environments appear in
+GitHub before considering the setup complete.
