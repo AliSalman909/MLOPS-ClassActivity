@@ -175,5 +175,20 @@ Keep Docker Desktop and the runner terminal open. After committing the
 workflow, a new release tag triggers tests, publishing, and deployment.
 Use an unused version and keep `VERSION` consistent with it. Step 19 has
 been configured locally; its workflow run has not yet been verified.
-An automated health check and production approval/deployment are still
-to be added in subsequent steps.
+Step 20 adds the automated health check. Production approval and deployment
+are still to be added in subsequent steps.
+
+## Staging Smoke Test: Adapted Step 20
+
+After starting the container, the same Windows runner requests
+`http://127.0.0.1:5001/health` using PowerShell. The check requires HTTP 200
+and a JSON body with `status` equal to `healthy`.
+
+The check makes up to 12 attempts, with a five-second request timeout and
+five-second pauses between failed attempts, allowing time for app startup.
+If all attempts fail, it throws an error and marks `deploy-staging` failed.
+Failure does not automatically stop the container or roll it back.
+
+The future production job must depend on successful staging deployment
+so that this check gates promotion. It does not measure model accuracy.
+The smoke test is configured; a release workflow run must still verify it.
