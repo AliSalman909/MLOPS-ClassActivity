@@ -17,6 +17,7 @@ The summaries below describe the completed steps; commit titles follow the comma
 | Start the CD workflow | Step 10 defines a tag-triggered workflow that checks out the code, sets up Python 3.12, installs dependencies, and runs the API tests. |
 | Extract the release version | Step 11 adds a build job after the tests, removes the leading `v` from the pushed tag, and exposes the version for later steps and jobs. |
 | Registry login | Step 12 configures GHCR authentication in the build job using `docker/login-action@v3` and the workflow's automatic `GITHUB_TOKEN`. |
+| Build and publish image | Step 13 adds Docker build and push steps using the extracted release version and a lowercase repository image name. |
 
 ## Build once, deploy many
 
@@ -41,7 +42,7 @@ access for the image publishing steps to be added later.
 
 At step 10, the workflow only runs tests. Image building, publishing,
 staging deployment, and production approval will be added in later steps.
-The first release tag will be pushed after the intended release workflow is ready.
+Step 13 introduces the first release tag to test image publishing; deployment comes later.
 
 ## Release Version: Step 11
 
@@ -51,7 +52,7 @@ The `Get version` step writes the value to `GITHUB_OUTPUT`; the job exposes
 it as its `version` output so later deployment jobs can use the same version.
 
 This version comes from the Git tag, not the `VERSION` file. Keep the file
-and release tag consistent when releasing. For now, the build job only
+and release tag consistent when releasing. At step 11, the build job only
 extracts and displays the version; Docker image building is added later.
 
 ## GHCR Login: Step 12
@@ -63,3 +64,16 @@ no personal password or manually created token is needed for this step.
 
 The existing `packages: write` permission enables package publishing.
 Login alone does not build or upload an image; those steps come next.
+
+## Build and Publish: Step 13
+
+After registry login, build the Docker image and push it to GHCR.
+`${GITHUB_REPOSITORY,,}` converts the repository path to lowercase for
+Docker image naming. The extracted release version supplies the image tag.
+
+After committing and pushing the workflow, push Git tag `v1.0.0` to trigger
+tests, image building, and publishing of
+`ghcr.io/alisalman909/mlops-classactivity:1.0.0`.
+Check GitHub Actions for the run result. Staging and production deployment
+are not configured yet. Use a new release version for future changes
+rather than moving an existing release tag.
